@@ -1,0 +1,29 @@
+# Core API
+fastapi==0.115.12
+uvicorn[standard]==0.34.3
+
+# Database
+sqlalchemy==2.0.41
+alembic==1.16.1
+aiomysql==0.3.2
+PyMySQL==1.2.0
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.20
+
+# Config
+python-dotenv==1.1.1
+pydantic==2.11.7
+pydantic-settings==2.10.1
+
+# Task Queue
+celery==5.5.3
+redis==6.2.0
+
+# Vector Store
+qdrant-client==1.14.3
+
+# HTTP Client (for OpenRouter API)
+httpx==0.28.1
