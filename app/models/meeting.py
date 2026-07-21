@@ -1,7 +1,7 @@
 import enum
 from sqlalchemy import (
     Column, Integer, String, Text, DateTime,
-    ForeignKey, JSON, func
+    ForeignKey, JSON, func, Boolean
 )
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -38,6 +38,7 @@ class Meeting(Base):
     summary_approved = Column(Text, nullable=True)
 
     # Temp storage for AI-extracted tasks before owner approves
+    extract_tasks = Column(Boolean, default=False, nullable=False)
     tasks_json = Column(JSON, nullable=True)
 
     duration_seconds = Column(Integer, nullable=True)

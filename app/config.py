@@ -33,7 +33,11 @@ class Settings(BaseSettings):
     openrouter_task_model: str = "meta-llama/llama-3.1-8b-instruct"
     openrouter_chat_model: str = "meta-llama/llama-3.1-8b-instruct"
 
-    # OpenAI (Whisper transcription)
+    # Groq (Whisper transcription)
+    groq_api_key: str = ""
+    whisper_model: str = "whisper-large-v3"
+    
+    # OpenAI (For embeddings)
     openai_api_key: str = ""
 
     # File Storage

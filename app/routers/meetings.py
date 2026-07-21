@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+import shutil
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
 
+from app.config import settings
 from app.database import get_db
 from app.models.user import User
 from app.models.meeting import Meeting, MeetingStatus
@@ -43,6 +46,7 @@ async def create_meeting(
         title=payload.title,
         description=payload.description,
         participant_emails=payload.participant_emails or [],
+        extract_tasks=payload.extract_tasks,
         status=MeetingStatus.uploaded,
     )
     db.add(meeting)
@@ -96,6 +100,42 @@ async def delete_meeting(
     meeting = await _get_owned_meeting(meeting_id, current_user.id, db)
     await db.delete(meeting)
     await db.commit()
+
+
+@router.post("/{meeting_id}/upload")
+async def upload_meeting_recording(
+    meeting_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload recording for a meeting (chunked stream to disk)."""
+    meeting = await _get_owned_meeting(meeting_id, current_user.id, db)
+    
+    if meeting.status not in (MeetingStatus.uploaded.value, MeetingStatus.failed.value):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Meeting is in '{meeting.status}' state and cannot accept a new upload."
+        )
+
+    user_dir = os.path.join(settings.storage_path, str(current_user.id), str(meeting.id))
+    os.makedirs(user_dir, exist_ok=True)
+
+    _, ext = os.path.splitext(file.filename or "")
+    filename = f"original{ext}"
+    file_path = os.path.join(user_dir, filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    meeting.recording_path = file_path
+    meeting.status = MeetingStatus.extracting_audio.value
+    await db.commit()
+    
+    from app.tasks import extract_audio_task
+    extract_audio_task.delay(meeting.id)
+
+    return {"message": "Upload successful, processing started", "recording_path": file_path}
 
 
 @router.get("/{meeting_id}/status")

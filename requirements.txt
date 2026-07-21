@@ -1,6 +1,7 @@
 # Core API
 fastapi==0.115.12
 uvicorn[standard]==0.34.3
+audioop-lts==0.2.2
 
 # Database
 sqlalchemy==2.0.41
@@ -22,8 +23,12 @@ pydantic-settings==2.10.1
 celery==5.5.3
 redis==6.2.0
 
-# Vector Store
+# Vector Store & RAG
 qdrant-client==1.14.3
+langchain==1.3.14
+langchain-openai==1.3.5
+langchain-qdrant==1.1.0
+langchain-text-splitters==1.1.2
 
 # HTTP Client (for OpenRouter API)
 httpx==0.28.1
