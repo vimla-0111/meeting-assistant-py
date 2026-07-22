@@ -7,24 +7,31 @@ import uuid
 from app.celery_app import celery_app
 from app.database import AsyncSessionLocal
 from app.models.meeting import Meeting, MeetingStatus
-from sqlalchemy import select
 from app.config import settings
+from sqlalchemy import select
 
 from openai import AsyncOpenAI
 from pydub import AudioSegment
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_qdrant import QdrantVectorStore
 from langchain_core.documents import Document
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-openai_client = AsyncOpenAI(api_key=settings.openai_api_key)
 groq_client = AsyncOpenAI(
     api_key=settings.groq_api_key,
     base_url="https://api.groq.com/openai/v1"
 )
-openrouter_client = AsyncOpenAI(
+summary_chat_model = ChatOpenAI(
+    model=settings.openrouter_summary_model,
     api_key=settings.openrouter_api_key,
     base_url=settings.openrouter_base_url
+)
+task_chat_model = ChatOpenAI(
+    model=settings.openrouter_task_model,
+    api_key=settings.openrouter_api_key,
+    base_url=settings.openrouter_base_url,
+    model_kwargs={"response_format": {"type": "json_object"}}
 )
 
 @celery_app.task(bind=True, name="app.tasks.extract_audio_task")
@@ -137,28 +144,23 @@ async def _generate_summary(meeting_id: int):
 
         try:
             # 1. Summary Generation
-            summary_response = await openrouter_client.chat.completions.create(
-                model=settings.openrouter_summary_model,
-                messages=[
-                    {"role": "system", "content": "You are a meeting assistant. Summarize the following meeting transcript. Provide Key Decisions, Discussion Points, and Outcomes in Markdown format."},
-                    {"role": "user", "content": meeting.transcript_raw or ""}
-                ]
-            )
-            meeting.summary_draft = summary_response.choices[0].message.content
+            summary_messages = [
+                SystemMessage(content="You are a meeting assistant. Summarize the following meeting transcript. Provide Key Decisions, Discussion Points, and Outcomes in Markdown format."),
+                HumanMessage(content=meeting.transcript_raw or "")
+            ]
+            summary_response = await summary_chat_model.ainvoke(summary_messages)
+            meeting.summary_draft = summary_response.content
             
             # 2. Task Extraction (if requested)
             if meeting.extract_tasks:
-                tasks_response = await openrouter_client.chat.completions.create(
-                    model=settings.openrouter_task_model,
-                    response_format={"type": "json_object"},
-                    messages=[
-                        {"role": "system", "content": 'Extract action items from the transcript. Output strictly in JSON format: {"tasks": [{"title": "Task title", "description": "Task description", "assignee_email": "email or null"}]}'},
-                        {"role": "user", "content": meeting.transcript_raw or ""}
-                    ]
-                )
+                task_messages = [
+                    SystemMessage(content='Extract action items from the transcript. Output strictly in JSON format: {"tasks": [{"title": "Task title", "description": "Task description", "assignee_email": "email or null"}]}'),
+                    HumanMessage(content=meeting.transcript_raw or "")
+                ]
+                tasks_response = await task_chat_model.ainvoke(task_messages)
                 
                 try:
-                    tasks_data = json.loads(tasks_response.choices[0].message.content)
+                    tasks_data = json.loads(tasks_response.content)
                     meeting.tasks_json = tasks_data.get("tasks", [])
                 except Exception:
                     meeting.tasks_json = []
