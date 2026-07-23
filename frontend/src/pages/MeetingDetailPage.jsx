@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Edit, Eye, Save, Mail, ChevronDown, ChevronRight, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import client from '../api/client';
 import StatusBadge from '../components/StatusBadge';
-import ReactMarkdown from 'react-markdown';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function MeetingDetailPage() {
     const { meetingId } = useParams();
@@ -13,7 +17,7 @@ export default function MeetingDetailPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [showRawTranscript, setShowRawTranscript] = useState(false);
-    const [isEditing, setIsEditing] = useState(false)
+    const [isEditing, setIsEditing] = useState(false);
 
     // Helper to fetch full meeting details
     async function fetchMeetingDetails() {
@@ -21,7 +25,6 @@ export default function MeetingDetailPage() {
             const response = await client.get(`/meetings/${meetingId}`);
             setMeeting(response.data);
             setEditableSummary(response.data.summary_draft || '');
-
         } catch (e) {
             setError('Failed to load meeting details');
         } finally {
@@ -36,9 +39,8 @@ export default function MeetingDetailPage() {
 
     // 2. Poll status every 5 seconds if pipeline is still processing
     useEffect(() => {
-        if (!meeting) {
-            return;
-        }
+        if (!meeting) return;
+
         const isProcessing = [
             'uploaded',
             'extracting_audio',
@@ -46,25 +48,21 @@ export default function MeetingDetailPage() {
             'summarizing',
         ].includes(meeting.status);
 
-        if (!isProcessing) {
-            return;  // Stop polling once processing is finished or failed
-        }
+        if (!isProcessing) return;
 
         const intervalId = setInterval(async () => {
             try {
                 const response = await client.get(`/meetings/${meetingId}/status`);
                 const newStatus = response.data.status;
-                // If status changed from processing to finished/failed, re-fetch full meeting
                 if (newStatus !== meeting.status) {
                     fetchMeetingDetails();
                 }
             } catch (err) {
                 console.error('Error polling status:', err);
             }
-
         }, 5000);
 
-        return () => clearInterval(intervalId); // Cleanup interval on unmount
+        return () => clearInterval(intervalId);
     }, [meeting, meetingId]);
 
     // 3. Save edited summary draft
@@ -82,136 +80,207 @@ export default function MeetingDetailPage() {
         }
     }
 
-    if (loading) return <div style={{ padding: '20px' }}>Loading meeting details...</div>;
-    if (error) return <div style={{ padding: '20px', color: 'red' }}>{error}</div>;
-    if (!meeting) return <div style={{ padding: '20px' }}>Meeting not found.</div>;
+    if (loading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-slate-50">
+                <div className="flex items-center gap-2 text-slate-500 font-medium">
+                    <Loader2 className="size-5 animate-spin" />
+                    Loading meeting details...
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-slate-50">
+                <div className="rounded-md bg-rose-50 p-4 text-sm font-medium text-rose-700 border border-rose-200">
+                    {error}
+                </div>
+            </div>
+        );
+    }
+
+    if (!meeting) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-slate-50">
+                <div className="text-slate-500 font-medium">Meeting not found.</div>
+            </div>
+        );
+    }
+
     const isProcessing = ['uploaded', 'extracting_audio', 'transcribing', 'summarizing'].includes(meeting.status);
+
     return (
-        <div style={{ maxWidth: '900px', margin: '30px auto', padding: '20px' }}>
-            <button onClick={() => navigate('/dashboard')} style={{ marginBottom: '20px' }}>
-                ← Back to Dashboard
-            </button>
-            {/* HEADER SECTION */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-                <div>
-                    <h1 style={{ margin: '0 0 10px 0' }}>{meeting.title}</h1>
-                    <p style={{ color: '#666', margin: '0 0 5px 0' }}>
-                        {meeting.description && meeting.description !== 'null' ? meeting.description : 'No description provided'}
-                    </p>
-                    <small style={{ color: '#999' }}>
-                        Created on: {new Date(meeting.created_at).toLocaleString()}
-                    </small>
-                </div>
-                <StatusBadge status={meeting.status} />
-            </div>
-            {/* PIPELINE PROCESSING BANNER */}
-            {isProcessing && (
-                <div style={{ padding: '15px', backgroundColor: '#e3f2fd', border: '1px solid #90caf9', borderRadius: '6px', marginBottom: '20px' }}>
-                    ⏳ <strong>AI Pipeline is processing this recording...</strong>
-                    <p style={{ margin: '5px 0 0 0', fontSize: '14px' }}>
-                        Current stage: <code>{meeting.status}</code>. This page will automatically update every 5 seconds.
-                    </p>
-                </div>
-            )}
-            {/* FAILURE BANNER */}
-            {meeting.status === 'failed' && (
-                <div style={{ padding: '15px', backgroundColor: '#ffebee', border: '1px solid #ef9a9a', borderRadius: '6px', color: '#c62828', marginBottom: '20px' }}>
-                    ❌ <strong>Pipeline Failed:</strong> {meeting.failure_reason || 'Unknown error during processing.'}
-                </div>
-            )}
-            {/* SUMMARY SECTION */}
-            {/* SUMMARY SECTION */}
-            <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
-                    <h3 style={{ margin: 0 }}>AI Summary</h3>
+        <div className="min-h-screen bg-slate-50 py-10 px-4">
+            <div className="max-w-4xl mx-auto space-y-6">
+                <Button variant="ghost" onClick={() => navigate('/dashboard')} className="gap-2 -ml-3 text-slate-600">
+                    <ArrowLeft className="size-4" />
+                    Back to Dashboard
+                </Button>
 
-                    {!isProcessing && (
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            {/* Button 1: Toggle Edit vs Preview */}
-                            <button
-                                onClick={() => setIsEditing(!isEditing)}
-                                style={{ padding: '6px 12px', cursor: 'pointer' }}
-                            >
-                                {isEditing ? '👁️ View Preview' : '✏️ Edit Summary'}
-                            </button>
-
-                            {/* Button 2: Save / Approve Summary */}
-                            <button
-                                onClick={async () => {
-                                    await handleSaveSummary();
-                                    setIsEditing(false);
-                                }}
-                                disabled={saving}
-                                style={{ padding: '6px 12px', cursor: 'pointer', backgroundColor: '#e8f5e9', border: '1px solid #a5d6a7', color: '#2e7d32' }}
-                            >
-                                {saving ? 'Saving...' : '✅ Save & Approve'}
-                            </button>
-
-                            {/* Button 3: Send Email Notification */}
-                            <button
-                                onClick={() => {
-                                    const emails = meeting.participant_emails?.join(', ') || 'No emails specified';
-                                    alert(`Sending email to participants: [${emails}]\n(Mailjet backend integration coming in Phase 2!)`);
-                                }}
-                                style={{ padding: '6px 12px', cursor: 'pointer', backgroundColor: '#e3f2fd', border: '1px solid #90caf9', color: '#1565c0' }}
-                            >
-                                📧 Send Email
-                            </button>
-                        </div>
-                    )}
-                </div>
-
-                {isProcessing ? (
-                    <p style={{ color: '#888' }}>Summary will appear here once processing completes...</p>
-                ) : isEditing ? (
-                    /* EDIT MODE (RAW TEXTAREA) */
+                {/* HEADER SECTION */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                     <div>
-                        <textarea
-                            value={editableSummary}
-                            onChange={(e) => setEditableSummary(e.target.value)}
-                            rows={12}
-                            style={{ width: '100%', padding: '10px', fontFamily: 'monospace', fontSize: '14px' }}
-                        />
+                        <h1 className="text-2xl font-bold tracking-tight text-slate-900 mb-1">{meeting.title}</h1>
+                        <p className="text-slate-600 mb-3">
+                            {meeting.description && meeting.description !== 'null' ? meeting.description : 'No description provided'}
+                        </p>
+                        <div className="text-sm text-slate-400">
+                            Created on: {new Date(meeting.created_at).toLocaleString()}
+                        </div>
                     </div>
-                ) : (
-                    /* PREVIEW MODE (RENDERED MARKDOWN) */
-                    <div style={{ lineHeight: '1.6', backgroundColor: '#fafafa', padding: '15px', borderRadius: '6px' }}>
-                        <ReactMarkdown>{editableSummary || 'No summary available.'}</ReactMarkdown>
+                    <div className="shrink-0">
+                        <StatusBadge status={meeting.status} />
                     </div>
-                )}
-            </div>
-            {/* EXTRACTED TASKS SECTION */}
-            {meeting.extract_tasks && (
-                <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
-                    <h3>Extracted Action Items / Tasks</h3>
-                    {meeting.tasks_json && meeting.tasks_json.length > 0 ? (
-                        <ul>
-                            {meeting.tasks_json.map((task, idx) => (
-                                <li key={idx} style={{ marginBottom: '10px' }}>
-                                    <strong>{task.title}</strong>
-                                    {task.assignee_email && <span> (Assignee: <em>{task.assignee_email}</em>)</span>}
-                                    <p style={{ margin: '3px 0 0 0', color: '#555', fontSize: '14px' }}>{task.description}</p>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p style={{ color: '#888' }}>No action items extracted or pending processing.</p>
-                    )}
                 </div>
-            )}
-            {/* RAW TRANSCRIPT SECTION */}
-            <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px' }}>
-                <button
-                    onClick={() => setShowRawTranscript(!showRawTranscript)}
-                    style={{ background: 'none', border: 'none', color: '#1976d2', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: 'bold' }}
-                >
-                    {showRawTranscript ? '▼ Hide Raw Transcript' : '▶ View Raw Transcript'}
-                </button>
-                {showRawTranscript && (
-                    <div style={{ marginTop: '15px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '6px', maxHeight: '300px', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
-                        {meeting.transcript_raw || 'Transcript not available yet.'}
+
+                {/* PIPELINE PROCESSING BANNER */}
+                {isProcessing && (
+                    <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800">
+                        <Loader2 className="size-5 animate-spin shrink-0 mt-0.5 text-blue-600" />
+                        <div>
+                            <strong className="block font-semibold">AI Pipeline is processing this recording...</strong>
+                            <p className="text-sm mt-1 text-blue-700">
+                                Current stage: <code className="bg-blue-100 px-1.5 py-0.5 rounded text-xs font-mono">{meeting.status}</code>. This page will automatically update.
+                            </p>
+                        </div>
                     </div>
                 )}
+
+                {/* FAILURE BANNER */}
+                {meeting.status === 'failed' && (
+                    <div className="flex items-start gap-3 p-4 bg-rose-50 border border-rose-200 rounded-lg text-rose-800">
+                        <AlertCircle className="size-5 shrink-0 mt-0.5 text-rose-600" />
+                        <div>
+                            <strong className="block font-semibold">Pipeline Failed</strong>
+                            <p className="text-sm mt-1 text-rose-700">
+                                {meeting.failure_reason || 'Unknown error occurred during processing.'}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* SUMMARY SECTION */}
+                <Card className="shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
+                        <CardTitle className="text-lg">AI Summary</CardTitle>
+                        {!isProcessing && (
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => setIsEditing(!isEditing)}
+                                    className="gap-1.5"
+                                >
+                                    {isEditing ? (
+                                        <><Eye className="size-4" /> View Preview</>
+                                    ) : (
+                                        <><Edit className="size-4" /> Edit Summary</>
+                                    )}
+                                </Button>
+
+                                <Button 
+                                    size="sm"
+                                    onClick={async () => {
+                                        await handleSaveSummary();
+                                        setIsEditing(false);
+                                    }}
+                                    disabled={saving}
+                                    className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                >
+                                    {saving ? (
+                                        <><Loader2 className="size-4 animate-spin" /> Saving...</>
+                                    ) : (
+                                        <><CheckCircle2 className="size-4" /> Save & Approve</>
+                                    )}
+                                </Button>
+
+                                <Button 
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => {
+                                        const emails = meeting.participant_emails?.join(', ') || 'No emails specified';
+                                        alert(`Sending email to participants: [${emails}]\n(Mailjet backend integration coming in Phase 2!)`);
+                                    }}
+                                    className="gap-1.5"
+                                >
+                                    <Mail className="size-4" /> Send Email
+                                </Button>
+                            </div>
+                        )}
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        {isProcessing ? (
+                            <p className="text-slate-500 italic">Summary will appear here once processing completes...</p>
+                        ) : isEditing ? (
+                            <Textarea
+                                value={editableSummary}
+                                onChange={(e) => setEditableSummary(e.target.value)}
+                                rows={12}
+                                className="font-mono text-sm resize-y"
+                            />
+                        ) : (
+                            <div className="prose prose-slate prose-sm max-w-none bg-slate-50/50 p-6 rounded-lg border border-slate-100">
+                                <ReactMarkdown>{editableSummary || 'No summary available.'}</ReactMarkdown>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* EXTRACTED TASKS SECTION */}
+                {meeting.extract_tasks && (
+                    <Card className="shadow-sm">
+                        <CardHeader className="pb-4 border-b">
+                            <CardTitle className="text-lg">Extracted Action Items</CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            {meeting.tasks_json && meeting.tasks_json.length > 0 ? (
+                                <ul className="space-y-4">
+                                    {meeting.tasks_json.map((task, idx) => (
+                                        <li key={idx} className="flex flex-col bg-white border border-slate-200 rounded-lg p-4">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <strong className="text-slate-900 font-semibold">{task.title}</strong>
+                                                {task.assignee_email && (
+                                                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md border border-slate-200">
+                                                        {task.assignee_email}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-sm text-slate-600">{task.description}</p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-slate-500 italic">No action items extracted or pending processing.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* RAW TRANSCRIPT SECTION */}
+                <Card className="shadow-sm">
+                    <CardHeader className="p-0">
+                        <button
+                            onClick={() => setShowRawTranscript(!showRawTranscript)}
+                            className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-50 transition-colors rounded-xl"
+                        >
+                            <span className="text-lg font-semibold text-slate-900">Raw Transcript</span>
+                            {showRawTranscript ? (
+                                <ChevronDown className="size-5 text-slate-400" />
+                            ) : (
+                                <ChevronRight className="size-5 text-slate-400" />
+                            )}
+                        </button>
+                    </CardHeader>
+                    {showRawTranscript && (
+                        <CardContent className="pt-0 pb-6 px-6">
+                            <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg max-h-80 overflow-y-auto whitespace-pre-wrap font-mono text-sm text-slate-700">
+                                {meeting.transcript_raw || 'Transcript not available yet.'}
+                            </div>
+                        </CardContent>
+                    )}
+                </Card>
             </div>
         </div>
     );

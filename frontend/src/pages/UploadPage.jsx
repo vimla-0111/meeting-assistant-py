@@ -68,7 +68,7 @@ export default function UploadPage() {
                         Upload your recording and let AI transcribe and summarize it for you.
                     </CardDescription>
                 </CardHeader>
-                
+
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-6 pt-6 bg-slate-50/50">
                         {error && (
@@ -124,8 +124,8 @@ export default function UploadPage() {
                         </div>
 
                         <div className="flex items-center space-x-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                            <Checkbox 
-                                id="extractTasks" 
+                            <Checkbox
+                                id="extractTasks"
                                 checked={extractTasks}
                                 onCheckedChange={setExtractTasks}
                                 className="data-[state=checked]:bg-primary"
