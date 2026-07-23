@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import client from '../api/client';
 import StatusBadge from '../components/StatusBadge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function DashboardPage() {
     const [meetings, setMeetings] = useState([]);
@@ -24,56 +27,83 @@ export default function DashboardPage() {
         fetchMeetings();
     }, []);
 
-    if (loading) return <div style={{ padding: '20px' }}>Loading meetings...</div>;
-    if (error) return <div style={{ padding: '20px', color: 'red' }}>{error}</div>;
+    if (loading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-slate-50">
+                <div className="text-lg font-medium text-slate-500 animate-pulse">Loading meetings...</div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-slate-50">
+                <div className="rounded-md bg-rose-50 p-4 text-sm font-medium text-rose-700 border border-rose-200">
+                    {error}
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div style={{ maxWidth: '800px', margin: '30px auto', padding: '0 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2>Your Meetings</h2>
-                <button onClick={() => navigate('/upload')} style={{ padding: '10px 15px', cursor: 'pointer' }}>
-                    + New Meeting
-                </button>
-            </div>
-
-            {meetings.length === 0 ? (
-                <p>No meetings found. Click "+ New Meeting" to upload your first recording!</p>
-            ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    {meetings.map((meeting) => (
-                        <div
-                            key={meeting.id}
-                            onClick={() => navigate(`/meetings/${meeting.id}`)}
-                            style={{
-                                border: '1px solid #ccc',
-                                borderRadius: '8px',
-                                padding: '15px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                backgroundColor: '#fff',
-                            }}
-                        >
-                            <div>
-                                <h3 style={{ margin: '0 0 5px 0' }}>{meeting.title}</h3>
-                                <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
-                                    {meeting.description && meeting.description !== 'null'
-                                        ? meeting.description
-                                        : 'No description provided'}
-                                </p>
-                                <small style={{ color: '#999' }}>
-                                    Created on: {new Date(meeting.created_at).toLocaleDateString()}
-                                </small>
-                            </div>
-
-                            <div>
-                                <StatusBadge status={meeting.status} />
-                            </div>
-                        </div>
-                    ))}
+        <div className="min-h-screen bg-slate-50 py-10 px-4">
+            <div className="max-w-4xl mx-auto space-y-8">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-3xl font-bold tracking-tight">Your Meetings</h2>
+                        <p className="text-muted-foreground mt-1">Manage and review your recorded meetings.</p>
+                    </div>
+                    <Button onClick={() => navigate('/upload')} className="gap-2">
+                        <Plus className="size-4" />
+                        New Meeting
+                    </Button>
                 </div>
-            )}
+
+                {/* Content */}
+                {meetings.length === 0 ? (
+                    <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
+                        <div className="rounded-full bg-slate-100 p-4 mb-4">
+                            <Plus className="size-8 text-slate-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold">No meetings found</h3>
+                        <p className="text-muted-foreground mt-2 max-w-sm">
+                            You haven't uploaded any meetings yet. Click the button above to upload your first recording!
+                        </p>
+                    </Card>
+                ) : (
+                    <div className="grid gap-4">
+                        {meetings.map((meeting) => (
+                            <Card 
+                                key={meeting.id}
+                                onClick={() => navigate(`/meetings/${meeting.id}`)}
+                                className="cursor-pointer hover:border-slate-300 hover:shadow-sm transition-all overflow-hidden group"
+                            >
+                                <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="space-y-1">
+                                        <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
+                                            {meeting.title}
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground line-clamp-1">
+                                            {meeting.description && meeting.description !== 'null'
+                                                ? meeting.description
+                                                : 'No description provided'}
+                                        </p>
+                                        <div className="text-xs text-slate-400 pt-1">
+                                            Created on: {new Date(meeting.created_at).toLocaleDateString(undefined, { 
+                                                year: 'numeric', month: 'short', day: 'numeric' 
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div className="shrink-0">
+                                        <StatusBadge status={meeting.status} />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

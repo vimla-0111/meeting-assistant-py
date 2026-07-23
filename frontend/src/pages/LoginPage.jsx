@@ -41,7 +41,7 @@ export default function LoginPage() {
                     <CardDescription>Enter your email and password to access your account</CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-4 pb-6">
                         {error && (
                             <div className="rounded-md bg-rose-50 p-3 text-sm font-medium text-rose-700 border border-rose-200">
                                 {error}
