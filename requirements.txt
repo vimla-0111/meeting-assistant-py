@@ -32,3 +32,6 @@ langchain-text-splitters==1.1.2
 
 # HTTP Client (for OpenRouter API)
 httpx==0.28.1
+
+# Formatting
+markdown==3.10.2

@@ -182,6 +182,9 @@ async def send_meeting_email(
     current_user: User = Depends(get_current_user),
 ):
     meeting = await _get_owned_meeting(meeting_id, current_user, db)
+    meeting.participant_emails = payload.recipient_emails
+    await db.commit()
+    
     from app.tasks import send_summary_notification_task
     send_summary_notification_task.delay(meeting.id, payload.subject, payload.body)
     return {"message": "Email dispatch started"}

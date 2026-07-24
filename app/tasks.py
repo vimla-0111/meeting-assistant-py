@@ -12,6 +12,11 @@ from app.config import settings
 from sqlalchemy import select
 import httpx
 import base64
+from app.logger import logger
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import markdown
 
 from openai import AsyncOpenAI
 from pydub import AudioSegment
@@ -244,57 +249,58 @@ async def _send_summary_notification(meeting_id: int, email_subject: str, email_
         if not emails:
             return
 
-        api_key = settings.mailjet_api_key
-        api_secret = settings.mailjet_secret_key
+        host = settings.mail_host
+        user = settings.mail_host_user
+        password = settings.mail_host_password
+        port = settings.mail_port
         sender = settings.mail_from_email
         sender_name = settings.mail_from_name
 
-        auth = base64.b64encode(f"{api_key}:{api_secret}".encode()).decode()
+        use_smtp = bool(host and user and password)
 
-        # Send via Mailjet API if configured, otherwise fallback to mock logging
-        use_mailjet = bool(api_key and api_secret)
+        for email_addr in emails:
+            status_val = NotificationStatus.failed.value
+            error_msg = None
 
-        async with httpx.AsyncClient() as client:
-            for email in emails:
-                status_val = NotificationStatus.failed.value
-                error_msg = None
+            if use_smtp:
+                try:
+                    # Convert the markdown summary to an HTML body
+                    html_body = markdown.markdown(email_body)
+                    
+                    msg = MIMEMultipart('alternative')
+                    msg['From'] = f"{sender_name} <{sender}>"
+                    msg['To'] = email_addr
+                    msg['Subject'] = email_subject
+                    
+                    # Attach both plain text and HTML versions
+                    msg.attach(MIMEText(email_body, 'plain'))
+                    msg.attach(MIMEText(html_body, 'html'))
 
-                if use_mailjet:
-                    payload = {
-                        "Messages": [
-                            {
-                                "From": {"Email": sender, "Name": sender_name},
-                                "To": [{"Email": email}],
-                                "Subject": email_subject,
-                                "TextPart": email_body,
-                            }
-                        ]
-                    }
-                    try:
-                        response = await client.post(
-                            "https://api.mailjet.com/v3.1/send",
-                            json=payload,
-                            headers={"Authorization": f"Basic {auth}"}
-                        )
-                        if response.status_code in (200, 201):
-                            status_val = NotificationStatus.sent.value
-                        else:
-                            error_msg = f"Mailjet error: {response.status_code} {response.text}"
-                    except Exception as e:
-                        error_msg = str(e)
-                else:
-                    # Mock sending if no Mailjet config
-                    print(f"MOCK EMAIL to {email}: {email_subject}")
+                    # Run smtplib in a separate thread so it doesn't block the async event loop
+                    def send_email_sync():
+                        with smtplib.SMTP(host, port) as server:
+                            server.login(user, password)
+                            server.send_message(msg)
+
+                    await asyncio.to_thread(send_email_sync)
                     status_val = NotificationStatus.sent.value
+                    logger.info(f"Email successfully sent to {email_addr} via SMTP")
+                except Exception as e:
+                    error_msg = f"SMTP error: {str(e)}"
+                    logger.error(f"Failed to send email to {email_addr}: {error_msg}")
+            else:
+                # Mock sending if no SMTP config
+                logger.info(f"MOCK EMAIL dispatched to {email_addr} with subject: '{email_subject}'")
+                status_val = NotificationStatus.sent.value
 
-                notification = Notification(
-                    meeting_id=meeting_id,
-                    sent_to=email,
-                    email_subject=email_subject,
-                    email_body=email_body,
-                    status=status_val,
-                    error_message=error_msg
-                )
-                db.add(notification)
-            
-            await db.commit()
+            notification = Notification(
+                meeting_id=meeting_id,
+                sent_to=email_addr,
+                email_subject=email_subject,
+                email_body=email_body,
+                status=status_val,
+                error_message=error_msg
+            )
+            db.add(notification)
+        
+        await db.commit()

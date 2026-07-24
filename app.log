@@ -1,0 +1,69 @@
+2026-07-24 16:12:59 [INFO] sqlalchemy.engine.Engine: BEGIN (implicit)
+2026-07-24 16:12:59 [INFO] sqlalchemy.engine.Engine: SELECT users.id, users.name, users.email, users.hashed_password, users.`role`, users.is_active, users.created_at, users.updated_at 
+FROM users 
+WHERE users.id = %s AND users.is_active = %s
+2026-07-24 16:12:59 [INFO] sqlalchemy.engine.Engine: [generated in 0.00073s] (2, 1)
+2026-07-24 16:12:59 [INFO] sqlalchemy.engine.Engine: SELECT meetings.id, meetings.owner_id, meetings.title, meetings.description, meetings.status, meetings.failure_reason, meetings.recording_path, meetings.audio_path, meetings.transcript_raw, meetings.summary_draft, meetings.summary_approved, meetings.extract_tasks, meetings.tasks_json, meetings.duration_seconds, meetings.participant_emails, meetings.processed_at, meetings.created_at, meetings.updated_at 
+FROM meetings 
+WHERE meetings.id = %s AND meetings.owner_id = %s
+2026-07-24 16:12:59 [INFO] sqlalchemy.engine.Engine: [generated in 0.00069s] (8, 2)
+2026-07-24 16:12:59 [INFO] sqlalchemy.engine.Engine: COMMIT
+2026-07-24 16:13:04 [DEBUG] celery.utils.functional: 
+def send_summary_notification_task(self, meeting_id, email_subject, email_body):
+    return 1
+
+2026-07-24 16:13:04 [DEBUG] redis.connection: Failed to enable maintenance notifications: Unknown subcommand or wrong number of arguments for 'MAINT_NOTIFICATIONS'. Try CLIENT HELP
+2026-07-24 16:13:04 [DEBUG] redis.connection: Failed to enable maintenance notifications: Unknown subcommand or wrong number of arguments for 'MAINT_NOTIFICATIONS'. Try CLIENT HELP
+2026-07-24 16:13:04 [DEBUG] redis.connection: Failed to enable maintenance notifications: Unknown subcommand or wrong number of arguments for 'MAINT_NOTIFICATIONS'. Try CLIENT HELP
+2026-07-24 16:13:04 [INFO] sqlalchemy.engine.Engine: BEGIN (implicit)
+2026-07-24 16:13:04 [INFO] sqlalchemy.engine.Engine: SELECT users.id, users.name, users.email, users.hashed_password, users.`role`, users.is_active, users.created_at, users.updated_at 
+FROM users 
+WHERE users.id = %s AND users.is_active = %s
+2026-07-24 16:13:04 [INFO] sqlalchemy.engine.Engine: [cached since 5.27s ago] (2, 1)
+2026-07-24 16:13:04 [INFO] sqlalchemy.engine.Engine: SELECT meetings.id, meetings.owner_id, meetings.title, meetings.description, meetings.status, meetings.failure_reason, meetings.recording_path, meetings.audio_path, meetings.transcript_raw, meetings.summary_draft, meetings.summary_approved, meetings.extract_tasks, meetings.tasks_json, meetings.duration_seconds, meetings.participant_emails, meetings.processed_at, meetings.created_at, meetings.updated_at 
+FROM meetings 
+WHERE meetings.id = %s AND meetings.owner_id = %s
+2026-07-24 16:13:04 [INFO] sqlalchemy.engine.Engine: [cached since 5.267s ago] (8, 2)
+2026-07-24 16:13:04 [INFO] sqlalchemy.engine.Engine: SELECT notifications.id, notifications.meeting_id, notifications.sent_to, notifications.email_subject, notifications.email_body, notifications.status, notifications.error_message, notifications.sent_at 
+FROM notifications 
+WHERE notifications.meeting_id = %s ORDER BY notifications.sent_at DESC
+2026-07-24 16:13:04 [INFO] sqlalchemy.engine.Engine: [generated in 0.00078s] (8,)
+2026-07-24 16:13:04 [INFO] sqlalchemy.engine.Engine: ROLLBACK
+2026-07-24 16:19:18 [INFO] meeting_assistant: Application shutting down...
+2026-07-24 16:19:19 [INFO] meeting_assistant: Application starting up...
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: SELECT DATABASE()
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: SELECT @@sql_mode
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: SELECT @@lower_case_table_names
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: BEGIN (implicit)
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: DESCRIBE `meeting_assistant`.`users`
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: DESCRIBE `meeting_assistant`.`meetings`
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: DESCRIBE `meeting_assistant`.`tasks`
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: DESCRIBE `meeting_assistant`.`notifications`
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:19 [INFO] sqlalchemy.engine.Engine: COMMIT
+2026-07-24 16:19:19 [INFO] meeting_assistant: Database tables verified.
+2026-07-24 16:19:39 [INFO] meeting_assistant: Application shutting down...
+2026-07-24 16:19:40 [INFO] meeting_assistant: Application starting up...
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: SELECT DATABASE()
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: SELECT @@sql_mode
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: SELECT @@lower_case_table_names
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: BEGIN (implicit)
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: DESCRIBE `meeting_assistant`.`users`
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: DESCRIBE `meeting_assistant`.`meetings`
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: DESCRIBE `meeting_assistant`.`tasks`
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: DESCRIBE `meeting_assistant`.`notifications`
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: [raw sql] ()
+2026-07-24 16:19:40 [INFO] sqlalchemy.engine.Engine: COMMIT
+2026-07-24 16:19:40 [INFO] meeting_assistant: Database tables verified.

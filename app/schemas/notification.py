@@ -19,3 +19,4 @@ class NotificationResponse(BaseModel):
 class SendEmailRequest(BaseModel):
     subject: str
     body: str
+    recipient_emails: List[str]

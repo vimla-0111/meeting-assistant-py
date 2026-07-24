@@ -12,7 +12,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 export default function UploadPage() {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [participantEmails, setParticipantEmails] = useState('');
     const [extractTasks, setExtractTasks] = useState(false);
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -30,12 +29,8 @@ export default function UploadPage() {
         setLoading(true);
 
         try {
-            const emailsArray = participantEmails
-                .split(',')
-                .map((email) => email.trim())
-                .filter((email) => email.length > 0);
             const createResponse = await client.post('/meetings', {
-                title, description, participant_emails: emailsArray, extract_tasks: extractTasks,
+                title, description, extract_tasks: extractTasks,
             });
             const meetingId = createResponse.data.id;
 
@@ -106,23 +101,6 @@ export default function UploadPage() {
                                 className="bg-white resize-none"
                             />
                         </div>
-
-                        <div className="space-y-3">
-                            <Label htmlFor="participants" className="text-sm font-semibold flex items-center gap-2">
-                                <Users className="size-4 text-slate-400" />
-                                Participant Emails
-                            </Label>
-                            <Input
-                                id="participants"
-                                type="text"
-                                value={participantEmails}
-                                onChange={(e) => setParticipantEmails(e.target.value)}
-                                placeholder="alex@example.com, sam@example.com"
-                                className="bg-white"
-                            />
-                            <p className="text-xs text-slate-500">Separate multiple emails with commas</p>
-                        </div>
-
                         <div className="flex items-center space-x-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                             <Checkbox
                                 id="extractTasks"

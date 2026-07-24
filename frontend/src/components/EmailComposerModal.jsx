@@ -7,23 +7,28 @@ import { Input } from '@/components/ui/input';
 export default function EmailComposerModal({ isOpen, onClose, meeting, onSend }) {
     const [subject, setSubject] = useState('');
     const [body, setBody] = useState('');
+    const [participantEmails, setParticipantEmails] = useState('');
     const [isSending, setIsSending] = useState(false);
 
     useEffect(() => {
         if (isOpen && meeting) {
             setSubject(`Meeting Summary: ${meeting.title}`);
             setBody(meeting.summary_approved || meeting.summary_draft || '');
+            setParticipantEmails(meeting.participant_emails?.join(', ') || '');
         }
     }, [isOpen, meeting]);
 
     if (!isOpen || !meeting) return null;
 
-    const emails = meeting.participant_emails?.join(', ') || 'No recipients';
-
     const handleSend = async () => {
         setIsSending(true);
         try {
-            await onSend({ subject, body });
+            const emailsArray = participantEmails
+                .split(',')
+                .map((email) => email.trim())
+                .filter((email) => email.length > 0);
+
+            await onSend({ subject, body, recipient_emails: emailsArray });
             onClose();
         } catch (error) {
             console.error('Failed to send email:', error);
@@ -46,9 +51,13 @@ export default function EmailComposerModal({ isOpen, onClose, meeting, onSend })
                 <div className="p-6 overflow-y-auto space-y-4 flex-1">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">To</label>
-                        <div className="bg-slate-50 border border-slate-200 px-3 py-2 rounded-md text-sm text-slate-600">
-                            {emails}
-                        </div>
+                        <Input 
+                            value={participantEmails} 
+                            onChange={(e) => setParticipantEmails(e.target.value)} 
+                            placeholder="alex@example.com, sam@example.com"
+                            className="font-medium"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">Separate multiple emails with commas</p>
                     </div>
 
                     <div>

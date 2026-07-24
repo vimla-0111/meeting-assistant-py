@@ -7,13 +7,23 @@ from app.database import engine, Base
 from app.routers import auth, meetings
 
 
+from app.logger import setup_logger, logger
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Set up application logging
+    setup_logger()
+    logger.info("Application starting up...")
+    
     # Create all tables on startup (use Alembic for prod migrations)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database tables verified.")
+    
     yield
+    
     # Cleanup on shutdown
+    logger.info("Application shutting down...")
     await engine.dispose()
 
 

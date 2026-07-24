@@ -44,8 +44,10 @@ class Settings(BaseSettings):
     storage_path: str = "./storage/recordings"
 
     # Email
-    mailjet_api_key: str = ""
-    mailjet_secret_key: str = ""
+    mail_host: str = "sandbox.smtp.mailtrap.io"
+    mail_host_user: str = ""
+    mail_host_password: str = ""
+    mail_port: int = 2525
     mail_from_email: str = "noreply@meetingassistant.com"
     mail_from_name: str = "Meeting Assistant"
 
