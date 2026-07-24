@@ -7,8 +7,11 @@ import uuid
 from app.celery_app import celery_app
 from app.database import AsyncSessionLocal
 from app.models.meeting import Meeting, MeetingStatus
+from app.models.notification import Notification, NotificationStatus
 from app.config import settings
 from sqlalchemy import select
+import httpx
+import base64
 
 from openai import AsyncOpenAI
 from pydub import AudioSegment
@@ -224,4 +227,74 @@ async def _index_transcript(meeting_id: int):
         except Exception as e:
             meeting.status = MeetingStatus.failed.value
             meeting.failure_reason = str(e)
+            await db.commit()
+
+@celery_app.task(bind=True, name="app.tasks.send_summary_notification_task")
+def send_summary_notification_task(self, meeting_id: int, email_subject: str, email_body: str):
+    asyncio.run(_send_summary_notification(meeting_id, email_subject, email_body))
+
+async def _send_summary_notification(meeting_id: int, email_subject: str, email_body: str):
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(Meeting).where(Meeting.id == meeting_id))
+        meeting = result.scalar_one_or_none()
+        if not meeting:
+            return
+
+        emails = meeting.participant_emails or []
+        if not emails:
+            return
+
+        api_key = settings.mailjet_api_key
+        api_secret = settings.mailjet_secret_key
+        sender = settings.mail_from_email
+        sender_name = settings.mail_from_name
+
+        auth = base64.b64encode(f"{api_key}:{api_secret}".encode()).decode()
+
+        # Send via Mailjet API if configured, otherwise fallback to mock logging
+        use_mailjet = bool(api_key and api_secret)
+
+        async with httpx.AsyncClient() as client:
+            for email in emails:
+                status_val = NotificationStatus.failed.value
+                error_msg = None
+
+                if use_mailjet:
+                    payload = {
+                        "Messages": [
+                            {
+                                "From": {"Email": sender, "Name": sender_name},
+                                "To": [{"Email": email}],
+                                "Subject": email_subject,
+                                "TextPart": email_body,
+                            }
+                        ]
+                    }
+                    try:
+                        response = await client.post(
+                            "https://api.mailjet.com/v3.1/send",
+                            json=payload,
+                            headers={"Authorization": f"Basic {auth}"}
+                        )
+                        if response.status_code in (200, 201):
+                            status_val = NotificationStatus.sent.value
+                        else:
+                            error_msg = f"Mailjet error: {response.status_code} {response.text}"
+                    except Exception as e:
+                        error_msg = str(e)
+                else:
+                    # Mock sending if no Mailjet config
+                    print(f"MOCK EMAIL to {email}: {email_subject}")
+                    status_val = NotificationStatus.sent.value
+
+                notification = Notification(
+                    meeting_id=meeting_id,
+                    sent_to=email,
+                    email_subject=email_subject,
+                    email_body=email_body,
+                    status=status_val,
+                    error_message=error_msg
+                )
+                db.add(notification)
+            
             await db.commit()

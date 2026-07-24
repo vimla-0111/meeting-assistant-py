@@ -4,6 +4,7 @@ import { ArrowLeft, Edit, Eye, Save, Mail, ChevronDown, ChevronRight, AlertCircl
 import ReactMarkdown from 'react-markdown';
 import client from '../api/client';
 import StatusBadge from '../components/StatusBadge';
+import EmailComposerModal from '../components/EmailComposerModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,13 +19,19 @@ export default function MeetingDetailPage() {
     const [error, setError] = useState('');
     const [showRawTranscript, setShowRawTranscript] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [notifications, setNotifications] = useState([]);
 
     // Helper to fetch full meeting details
     async function fetchMeetingDetails() {
         try {
-            const response = await client.get(`/meetings/${meetingId}`);
-            setMeeting(response.data);
-            setEditableSummary(response.data.summary_draft || '');
+            const [meetingRes, notifRes] = await Promise.all([
+                client.get(`/meetings/${meetingId}`),
+                client.get(`/meetings/${meetingId}/notifications`)
+            ]);
+            setMeeting(meetingRes.data);
+            setEditableSummary(meetingRes.data.summary_draft || '');
+            setNotifications(notifRes.data);
         } catch (e) {
             setError('Failed to load meeting details');
         } finally {
@@ -79,6 +86,30 @@ export default function MeetingDetailPage() {
             setSaving(false);
         }
     }
+
+    async function handleApproveSummary() {
+        setSaving(true);
+        try {
+            await client.put(`/meetings/${meetingId}`, {
+                summary_draft: editableSummary,
+            });
+            const res = await client.post(`/meetings/${meetingId}/approve`);
+            setMeeting(res.data);
+            alert('Summary approved successfully!');
+        } catch (err) {
+            alert('Failed to approve summary.');
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    const handleSendEmail = async (emailData) => {
+        await client.post(`/meetings/${meetingId}/send-email`, emailData);
+        // Refresh notifications
+        const notifRes = await client.get(`/meetings/${meetingId}/notifications`);
+        setNotifications(notifRes.data);
+        alert('Email dispatch started!');
+    };
 
     if (loading) {
         return (
@@ -183,7 +214,11 @@ export default function MeetingDetailPage() {
                                 <Button 
                                     size="sm"
                                     onClick={async () => {
-                                        await handleSaveSummary();
+                                        if (meeting.status === 'pending_approval') {
+                                            await handleApproveSummary();
+                                        } else {
+                                            await handleSaveSummary();
+                                        }
                                         setIsEditing(false);
                                     }}
                                     disabled={saving}
@@ -192,17 +227,14 @@ export default function MeetingDetailPage() {
                                     {saving ? (
                                         <><Loader2 className="size-4 animate-spin" /> Saving...</>
                                     ) : (
-                                        <><CheckCircle2 className="size-4" /> Save & Approve</>
+                                        <><CheckCircle2 className="size-4" /> {meeting.status === 'pending_approval' ? 'Approve Summary' : 'Save Summary'}</>
                                     )}
                                 </Button>
 
                                 <Button 
                                     variant="secondary"
                                     size="sm"
-                                    onClick={() => {
-                                        const emails = meeting.participant_emails?.join(', ') || 'No emails specified';
-                                        alert(`Sending email to participants: [${emails}]\n(Mailjet backend integration coming in Phase 2!)`);
-                                    }}
+                                    onClick={() => setIsModalOpen(true)}
                                     className="gap-1.5"
                                 >
                                     <Mail className="size-4" /> Send Email
@@ -222,7 +254,7 @@ export default function MeetingDetailPage() {
                             />
                         ) : (
                             <div className="prose prose-slate prose-sm max-w-none bg-slate-50/50 p-6 rounded-lg border border-slate-100">
-                                <ReactMarkdown>{editableSummary || 'No summary available.'}</ReactMarkdown>
+                                <ReactMarkdown>{meeting.summary_approved || editableSummary || 'No summary available.'}</ReactMarkdown>
                             </div>
                         )}
                     </CardContent>
@@ -281,7 +313,50 @@ export default function MeetingDetailPage() {
                         </CardContent>
                     )}
                 </Card>
+
+                {/* NOTIFICATIONS LOG */}
+                <Card className="shadow-sm">
+                    <CardHeader className="pb-4 border-b">
+                        <CardTitle className="text-lg">Email Notifications Log</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        {notifications.length > 0 ? (
+                            <ul className="space-y-4">
+                                {notifications.map((notif) => (
+                                    <li key={notif.id} className="flex flex-col bg-white border border-slate-200 rounded-lg p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <strong className="text-sm text-slate-900 font-semibold truncate pr-4">To: {notif.sent_to}</strong>
+                                            <span className={`text-xs px-2 py-1 rounded-md border ${notif.status === 'sent' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                                                {notif.status.toUpperCase()}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs text-slate-500 mb-2">
+                                            Sent at: {new Date(notif.sent_at).toLocaleString()}
+                                        </div>
+                                        {notif.email_subject && (
+                                            <div className="text-sm font-medium text-slate-800 mb-1">Sub: {notif.email_subject}</div>
+                                        )}
+                                        {notif.error_message && (
+                                            <div className="text-xs text-rose-600 mt-2 bg-rose-50 p-2 rounded border border-rose-100">
+                                                Error: {notif.error_message}
+                                            </div>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-slate-500 italic">No emails have been sent yet.</p>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
+            
+            <EmailComposerModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                meeting={meeting}
+                onSend={handleSendEmail}
+            />
         </div>
     );
 }

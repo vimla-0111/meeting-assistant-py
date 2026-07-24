@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, func
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, func, Text
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -16,6 +16,8 @@ class Notification(Base):
     meeting_id = Column(Integer, ForeignKey("meetings.id", ondelete="CASCADE"), nullable=False, index=True)
 
     sent_to = Column(String(255), nullable=False)
+    email_subject = Column(String(255), nullable=True)
+    email_body = Column(Text, nullable=True)
     status = Column(String(10), nullable=False)
     error_message = Column(String(500), nullable=True)
 
