@@ -33,15 +33,21 @@ class Settings(BaseSettings):
     openrouter_task_model: str = "meta-llama/llama-3.1-8b-instruct"
     openrouter_chat_model: str = "meta-llama/llama-3.1-8b-instruct"
 
-    # OpenAI (Whisper transcription)
+    # Groq (Whisper transcription)
+    groq_api_key: str = ""
+    whisper_model: str = "whisper-large-v3"
+    
+    # OpenAI (For embeddings)
     openai_api_key: str = ""
 
     # File Storage
     storage_path: str = "./storage/recordings"
 
     # Email
-    mailjet_api_key: str = ""
-    mailjet_secret_key: str = ""
+    mail_host: str = "sandbox.smtp.mailtrap.io"
+    mail_host_user: str = ""
+    mail_host_password: str = ""
+    mail_port: int = 2525
     mail_from_email: str = "noreply@meetingassistant.com"
     mail_from_name: str = "Meeting Assistant"
 

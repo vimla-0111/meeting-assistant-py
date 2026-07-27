@@ -1,0 +1,22 @@
+startup
+source my_env/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+source my_env/bin/activate
+celery -A app.celery_app worker --loglevel=info
+
+
+// redis server instllation
+sudo apt update
+sudo apt install redis-server -y
+redis-cli ping   // verify running
+sudo systemctl enable redis-server  // verify running
+
+// Transcription uses Groq.
+// Summaries & Tasks use OpenRouter (Llama 3).
+// Embeddings use OpenRouter (OpenAI).
+    
+// TODO    
+// will use uuid for meetings detail
+// upload video/audio in chunks
+// will use single ui page for meeting list and chat actions 

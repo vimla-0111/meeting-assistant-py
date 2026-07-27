@@ -1,3 +1,4 @@
-.storage/
+storage/
 .env
 __pycache__/
+chat-ui/

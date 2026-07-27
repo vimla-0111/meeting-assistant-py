@@ -10,6 +10,7 @@ class MeetingCreateRequest(BaseModel):
     title: str
     description: Optional[str] = None
     participant_emails: Optional[List[str]] = []
+    extract_tasks: bool = False
 
 
 class MeetingUpdateRequest(BaseModel):
@@ -35,6 +36,7 @@ class MeetingResponse(BaseModel):
     summary_approved: Optional[str]
     duration_seconds: Optional[int]
     participant_emails: Optional[List[str]]
+    extract_tasks: bool
     processed_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
