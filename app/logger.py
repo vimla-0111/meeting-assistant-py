@@ -29,9 +29,14 @@ def setup_logger():
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
-    # Suppress verbose logs from some noisy libraries
+    # Suppress verbose logs from noisy libraries — only show warnings and above
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
+    logging.getLogger("redis").setLevel(logging.WARNING)
+    logging.getLogger("celery").setLevel(logging.WARNING)
+    logging.getLogger("kombu").setLevel(logging.WARNING)
 
     return logger
 

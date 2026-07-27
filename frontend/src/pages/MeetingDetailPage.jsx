@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Eye, Save, Mail, ChevronDown, ChevronRight, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import client from '../api/client';
 import StatusBadge from '../components/StatusBadge';
 import EmailComposerModal from '../components/EmailComposerModal';
@@ -253,8 +254,10 @@ export default function MeetingDetailPage() {
                                 className="font-mono text-sm resize-y"
                             />
                         ) : (
-                            <div className="prose prose-slate prose-sm max-w-none bg-slate-50/50 p-6 rounded-lg border border-slate-100">
-                                <ReactMarkdown>{meeting.summary_approved || editableSummary || 'No summary available.'}</ReactMarkdown>
+                            <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-h2:text-base prose-h3:text-sm prose-h2:mt-5 prose-h3:mt-4 prose-p:leading-relaxed prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 bg-slate-50/50 p-6 rounded-lg border border-slate-100">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {meeting.summary_approved || editableSummary || 'No summary available.'}
+                                </ReactMarkdown>
                             </div>
                         )}
                     </CardContent>
